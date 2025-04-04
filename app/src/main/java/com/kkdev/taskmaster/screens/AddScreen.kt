@@ -1,5 +1,8 @@
 package com.kkdev.taskmaster.screens
 
+import android.content.Context
+import android.widget.Toast
+import androidx.activity.result.launch
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -37,31 +40,43 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 import com.kkdev.taskmaster.R
 import com.kkdev.taskmaster.composable.BorderlessTextField
 import com.kkdev.taskmaster.composables.ToggleButton
 import com.kkdev.taskmaster.composables.ToggleButtonList
 import com.kkdev.taskmaster.data.models.Task
+import com.kkdev.taskmaster.di.RoomModule
 import com.kkdev.taskmaster.ui.theme.AppTheme
 import com.kkdev.taskmaster.ui.theme.poppinsFontFamily
 import com.kkdev.taskmaster.viewmodel.TaskViewModel
+import kotlinx.coroutines.launch
+import java.sql.Time
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddTask() {
+fun AddTask(navController: NavController) {
     val focusRequester = remember { FocusRequester() }
     var taskTitle by remember { mutableStateOf("") }
     var taskDescription by remember { mutableStateOf("") }
     var isPinned: Boolean by remember { mutableStateOf(false) }
+    val coroutineScope = rememberCoroutineScope()
+    //Track Selected Category:
+    var selectedCategory by remember { mutableStateOf("Personal") } // Initial Value
+    // Get TaskDao
+    val context = LocalContext.current
+    val taskDao = remember { RoomModule.providesTaskDao(RoomModule.providesTaskDatabase(context)) }
 
     Scaffold(
         containerColor = AppTheme.colorScheme.onPrimary,
@@ -97,7 +112,7 @@ fun AddTask() {
 //                        fontWeight = FontWeight.SemiBold
 //                    )},
                 navigationIcon = {
-                    IconButton(onClick = { /*TODO*/ }) {
+                    IconButton(onClick = { navController.popBackStack() }) {
                         Icon(
                             painter = painterResource(id = R.drawable.arrow_left),
                             contentDescription = "navigate back to home",
@@ -132,14 +147,39 @@ fun AddTask() {
                             )
                         }
                     }
+                    IconButton(onClick = {
+                        coroutineScope.launch {
+                            if (taskTitle.isNotEmpty()){
+                                val newTask = Task(
+                                    tTitle = taskTitle,
+                                    tDesc = taskDescription,
+                                    isPinned = isPinned,
+                                    // You may need to adjust other fields like category and dueDate
+                                    // based on how you're handling them in the UI. For now, I'm using
+                                    // a default or placeholder value.
+                                    tCategory = selectedCategory, // Placeholder
+                                    tTime = "25-04-2025" // Placeholder, if not implemented yet
+                                )
+                                taskDao.insert(newTask)
+                                navController.popBackStack() // Navigate back after adding
+                            }else{
+                                showToast(context, "Please enter a task title")
+                            }
+
+                        }
+                    }) {
+                        Icon(imageVector = Icons.Filled.Done, contentDescription = "Add Task")
+                    }
                 }
             )
         },
         bottomBar = {
             BottomAppBar (
                 actions = {
-                    ToggleButtonGroup()
-                },
+                    ToggleButtonGroup(onCategorySelected = { category ->
+                        selectedCategory = category
+                    })
+                          },
                 containerColor = AppTheme.colorScheme.onPrimary,
             )
         }
@@ -191,18 +231,11 @@ fun AddTask() {
 
 }
 
-@Preview(showBackground = true)
-@Composable
-fun F1k(){
-    AppTheme{
-        AddTask()
-    }
-}
 
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun ToggleButtonGroup() {
+fun ToggleButtonGroup(onCategorySelected: (String) -> Unit) { // Callback function
     var selectedButton by remember { mutableIntStateOf(0) }
 
     val categories = listOf(
@@ -220,11 +253,18 @@ fun ToggleButtonGroup() {
                 text = category.btnText,
                 btnImg = category.btnIcon,
                 isSelected = selectedButton == index,
-                onClick = { selectedButton = index },
+                onClick = { selectedButton = index
+                    onCategorySelected(category.btnText)
+                },
                 modifier = Modifier.padding(4.dp)
             )
         }
 
     }
+}
+
+// Helper function to show Toast
+private fun showToast(context: Context, message: String) {
+    Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
 }
 

@@ -1,5 +1,6 @@
 package com.kkdev.taskmaster.screens
 
+import androidx.activity.result.launch
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
@@ -20,6 +21,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -28,14 +30,19 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 import com.kkdev.taskmaster.composables.HomeNotesView
 import com.kkdev.taskmaster.composables.ToggleButton
 import com.kkdev.taskmaster.composables.ToggleButtonList
+import com.kkdev.taskmaster.data.models.Task
+import com.kkdev.taskmaster.di.RoomModule
 import com.kkdev.taskmaster.ui.theme.AppTheme
 import com.kkdev.taskmaster.ui.theme.poppinsFontFamily
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 
 data class TaskItem(
@@ -49,10 +56,38 @@ data class TaskItem(
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
-fun HomeScreen(){
-    val taskAvailability: Boolean by remember {
-        mutableStateOf(false)
+fun HomeScreen(navController: NavController){ // Receive NavController
+    // Get TaskDao
+    val context = LocalContext.current
+    val taskDao = remember { RoomModule.providesTaskDao(RoomModule.providesTaskDatabase(context)) }
+
+    // State for tasks (using Flow to observe changes)
+    val allTasksFlow: Flow<List<Task>> = remember { taskDao.getAllTasks() }
+    val pinnedTasksFlow: Flow<List<Task>> = remember { taskDao.getPinnedTasks() }
+
+    val allTasks by allTasksFlow.collectAsState(initial = emptyList())
+    val pinnedTasks by pinnedTasksFlow.collectAsState(initial = emptyList())
+
+    val coroutineScope = rememberCoroutineScope()
+
+    // Implement Complete Function
+    val completeTask: (Task) -> Unit = { task ->
+        coroutineScope.launch {
+            // Assuming you have an isCompleted field in your Task model
+            val updatedTask = task.copy(isCompleted = true)
+            taskDao.update(updatedTask)
+        }
     }
+
+    // Implement Delete Function
+    val deleteTask: (Task) -> Unit = { task ->
+        coroutineScope.launch {
+            taskDao.delete(task)
+        }
+    }
+
+    val taskAvailability = allTasks.isNotEmpty() //Determine task availability based on data
+
     val categories = listOf(
         ToggleButtonList("All list"),
         ToggleButtonList("Pinned")
@@ -60,17 +95,8 @@ fun HomeScreen(){
 
     var selectedButton by remember { mutableStateOf(0) }
     val pagerState = rememberPagerState(initialPage = 0, pageCount = { 2 })
-    val coroutineScope = rememberCoroutineScope()
 
 
-    //sample data
-    val allTasks = listOf(
-        TaskItem("Task note done yet", "Personal", "15-04-2024","This task may be completed by tommorrow and not by today okay?"),
-        TaskItem("To do list", "Finance", "15-04-2024")
-    )
-    val pinnedTasks = listOf(
-        TaskItem("Pinned Task", "Work", "14-04-2024")
-    )
 
 
 
@@ -88,7 +114,9 @@ fun HomeScreen(){
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { /*TODO*/ },
+                onClick = {
+                    navController.navigate("addTask") // Navigate to "addTask"
+                },
                 containerColor = AppTheme.colorScheme.primary,
                 contentColor = AppTheme.colorScheme.onPrimary,
                 shape = CircleShape
@@ -128,7 +156,9 @@ fun HomeScreen(){
             HomeNotesView(
                 allTasks = allTasks,
                 pinnedTasks = pinnedTasks,
-                pagerState = pagerState
+                pagerState = pagerState,
+                onCompleteTask = completeTask, // Pass the function
+                onDeleteTask = deleteTask      // Pass the function
             )
         }
 
@@ -142,13 +172,4 @@ fun HomeScreen(){
 
 }
 
-
-
-@Preview(showBackground = true,apiLevel = 34)
-@Composable
-fun hsp(){
-    AppTheme{
-        HomeScreen()
-    }
-}
 

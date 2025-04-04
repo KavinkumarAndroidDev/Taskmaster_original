@@ -4,6 +4,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -28,6 +29,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.kkdev.taskmaster.R
+import com.kkdev.taskmaster.data.models.Task
 import com.kkdev.taskmaster.screens.TaskItem
 import com.kkdev.taskmaster.ui.theme.poppinsFontFamily
 import kotlinx.coroutines.launch
@@ -35,9 +37,11 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun HomeNotesView(
-    allTasks: List<TaskItem>,
-    pinnedTasks: List<TaskItem>,
-    pagerState: PagerState
+    allTasks: List<Task>,
+    pinnedTasks: List<Task>,
+    pagerState: PagerState,
+    onCompleteTask: (Task) -> Unit, // Add callback to HomeNotesView
+    onDeleteTask: (Task) -> Unit  // Add callback to HomeNotesView
 ) {
     HorizontalPager(state = pagerState) { page ->
         when (page) {
@@ -48,22 +52,10 @@ fun HomeNotesView(
                         message = "Create your first to-do list"
                     )
                 } else {
-                    LazyColumn(
-                        modifier = Modifier
-                            .padding(horizontal = 15.dp)
-                            .fillMaxWidth()
-                            .fillMaxHeight()
-                    ) {
-                        items(allTasks) { task ->
-                            TaskView(
-                                tTitle = task.tTitle,
-                                tCategory = task.tCat,
-                                tTime = task.time,
-                                tDescription = task.tdes
-                            )
-                            Spacer(modifier = Modifier.height(15.dp))
-                        }
-                    }
+                     TaskList(
+                    tasks = allTasks,
+                    onCompleteTask = onCompleteTask, // Pass callback to TaskList
+                    onDeleteTask = onDeleteTask  )    // Pass callback to TaskList
                 }
             }
             1 -> {
@@ -73,22 +65,11 @@ fun HomeNotesView(
                         message = "Oops! No pinned list yet..."
                     )
                 } else {
-                    LazyColumn(
-                        modifier = Modifier
-                            .padding(horizontal = 15.dp)
-                            .fillMaxWidth()
-                            .fillMaxHeight()
-                    ) {
-                        items(pinnedTasks) { task ->
-                            TaskView(
-                                tTitle = task.tTitle,
-                                tCategory = task.tCat,
-                                tTime = task.time,
-                                tDescription = task.tdes
-                            )
-                            Spacer(modifier = Modifier.height(15.dp))
-                        }
-                    }
+                     TaskList(
+                    tasks = pinnedTasks,
+                    onCompleteTask = onCompleteTask, // Pass callback to TaskList
+                    onDeleteTask = onDeleteTask      // Pass callback to TaskList
+                    )
                 }
             }
         }
@@ -116,3 +97,30 @@ fun EmptyStateView(imageResId: Int, message: String) {
     }
 }
 
+
+
+
+@Composable
+fun TaskList(
+    tasks: List<Task>,
+    onCompleteTask: (Task) -> Unit, // Callback from HomeNotesView
+    onDeleteTask: (Task) -> Unit  // Callback from HomeNotesView
+) {
+    if (tasks.isNotEmpty()) {
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 15.dp),
+            contentPadding = PaddingValues(vertical = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            items(tasks) { task ->
+                TaskView(
+                    task = task,
+                    onCompleteClick = onCompleteTask, // Pass callback to TaskView
+                    onDeleteClick = onDeleteTask      // Pass callback to TaskView
+                )
+            }
+        }
+    }
+}

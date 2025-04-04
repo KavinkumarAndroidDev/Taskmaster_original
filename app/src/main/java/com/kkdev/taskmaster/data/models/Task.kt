@@ -9,7 +9,7 @@ data class Task(
     val tTitle: String,
     val tDesc: String,
     val tCategory : String,
-    val tTime: Long,
+    val tTime: String,
     val isCompleted: Boolean = false,
     val isPinned: Boolean = false
 )

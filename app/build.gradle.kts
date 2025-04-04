@@ -1,8 +1,10 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.jetbrains.kotlin.android)
-    id("kotlin-kapt")
-    id("com.google.dagger.hilt.android")
+    id("com.google.devtools.ksp")
+    id ("org.jetbrains.kotlin.plugin.compose")
+
+
 
 }
 
@@ -62,6 +64,7 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+    implementation(libs.androidx.navigation.compose)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -79,13 +82,12 @@ dependencies {
     annotationProcessor("androidx.room:room-compiler:$room_version")
 
     // To use Kotlin annotation processing tool (kapt)
-    kapt("androidx.room:room-compiler:$room_version")
+    ksp("androidx.room:room-compiler:$room_version")
+
 
     // optional - Kotlin Extensions and Coroutines support for Room
     implementation("androidx.room:room-ktx:$room_version")
 
-    implementation("com.google.dagger:hilt-android:2.51.1")
-    kapt("com.google.dagger:hilt-android-compiler:2.51.1")
     // Preferences DataStore (SharedPreferences like APIs)
 
     implementation("androidx.datastore:datastore-preferences:1.1.1")
@@ -96,8 +98,6 @@ dependencies {
     // optional - RxJava3 support
     implementation("androidx.datastore:datastore-preferences-rxjava3:1.1.1")
 
-}
-// Allow references to generated code
-kapt {
-    correctErrorTypes = true
+    implementation("androidx.navigation:navigation-compose:2.7.7")
+
 }

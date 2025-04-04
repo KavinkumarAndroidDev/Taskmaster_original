@@ -4,13 +4,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kkdev.taskmaster.data.states.SortType
 import com.kkdev.taskmaster.repository.HomeRepository
-import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
-@HiltViewModel
-class HomeViewModel  @Inject constructor(
+class HomeViewModel (
     private val homeRepository: HomeRepository
 ): ViewModel() {
 
